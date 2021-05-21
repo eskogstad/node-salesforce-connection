@@ -7,11 +7,13 @@ let XML = require("./xml");
 class SalesforceConnection {
   constructor() {
     this.instanceHostname = null;
+    this.port = null;
     this.sessionId = null;
   }
 
-  async soapLogin({hostname, apiVersion, username, password}) {
+  async soapLogin({hostname, port, apiVersion, username, password}) {
     this.instanceHostname = hostname;
+    this.port = port;
     this.sessionId = null;
     let wsdl = this.wsdl(apiVersion, "Partner");
     let loginResult = await this.soap(wsdl, "login", {username, password});
@@ -187,6 +189,7 @@ class SalesforceConnection {
 
   _request(httpsOptions, requestBody) {
     return new Promise((resolve, reject) => {
+      httpsOptions.port = this.port;
       let req = https.request(httpsOptions, response => {
         let chunks = [];
         response.on("data", chunk => chunks.push(chunk));
