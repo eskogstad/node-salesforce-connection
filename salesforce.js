@@ -5,15 +5,14 @@ let XML = require("./xml");
 
 // See README.md for documentation.
 class SalesforceConnection {
-  constructor() {
+  constructor(port) {
     this.instanceHostname = null;
-    this.port = null;
     this.sessionId = null;
-  }
-
-  async soapLogin({hostname, port, apiVersion, username, password}) {
-    this.instanceHostname = hostname;
     this.port = port;
+  }  
+
+  async soapLogin({hostname, apiVersion, username, password}) {
+    this.instanceHostname = hostname;
     this.sessionId = null;
     let wsdl = this.wsdl(apiVersion, "Partner");
     let loginResult = await this.soap(wsdl, "login", {username, password});
@@ -48,7 +47,9 @@ class SalesforceConnection {
   }
 
   async rest(path, {method = "GET", api = "normal", body = undefined, bodyType = "json", headers: argHeaders = {}, responseType = "json"} = {}) {
-    let host = this.instanceHostname;
+    // The port number might be appended to the URL. Remove it and specify it separately.
+    let host = this.instanceHostname.split(":")[0];
+    let port = this.port;
     let headers = {};
 
     if (responseType == "json") {
@@ -85,7 +86,7 @@ class SalesforceConnection {
 
     Object.assign(headers, argHeaders); // argHeaders take priority over headers
 
-    let response = await this._request({host, path, method, headers}, body);
+    let response = await this._request({host, port, path, method, headers}, body);
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (responseType == "json") {
         if (response.body.length > 0) {
@@ -153,7 +154,9 @@ class SalesforceConnection {
 
   async soap(wsdl, method, args, {headers} = {}) {
     let httpsOptions = {
-      host: this.instanceHostname,
+      // The port number might be appended to the URL. Remove it and specify it separately.
+      host: this.instanceHostname.split(":")[0],
+      port: this.port,
       path: wsdl.servicePortAddress,
       method: "POST",
       headers: {
@@ -189,7 +192,6 @@ class SalesforceConnection {
 
   _request(httpsOptions, requestBody) {
     return new Promise((resolve, reject) => {
-      httpsOptions.port = this.port;
       let req = https.request(httpsOptions, response => {
         let chunks = [];
         response.on("data", chunk => chunks.push(chunk));
