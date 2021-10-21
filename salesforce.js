@@ -11,11 +11,17 @@ class SalesforceConnection {
     this.port = port;
   }  
 
-  async soapLogin({hostname, apiVersion, username, password}) {
+  async soapLogin({hostname, apiVersion, port, username, password, options}) {
+    let overrides = {};
+    if (port) overrides["port"] = port;
+
+    let headers = {};
+    if (options && options.clientId) headers["CallOptions"] = { client : options.clientId };
+
     this.instanceHostname = hostname;
     this.sessionId = null;
     let wsdl = this.wsdl(apiVersion, "Partner");
-    let loginResult = await this.soap(wsdl, "login", {username, password});
+    let loginResult = await this.soap(wsdl, "login", {username, password}, {headers}, {overrides});
     let {serverUrl, sessionId} = loginResult;
     serverUrl = /https:\/\/(.*)\/services/.exec(serverUrl)[1];
     if (!serverUrl || !sessionId) {
@@ -152,11 +158,11 @@ class SalesforceConnection {
     return wsdl;
   }
 
-  async soap(wsdl, method, args, {headers} = {}) {
+  async soap(wsdl, method, args, {headers} = {}, {overrides} = {}) {
     let httpsOptions = {
       // The port number might be appended to the URL. Remove it and specify it separately.
       host: this.instanceHostname.split(":")[0],
-      port: this.port,
+      port: overrides.port ? overrides.port : this.port,
       path: wsdl.servicePortAddress,
       method: "POST",
       headers: {
