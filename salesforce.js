@@ -158,7 +158,7 @@ class SalesforceConnection {
     return wsdl;
   }
 
-  async soap(wsdl, method, args, {headers} = {}, {overrides} = {}) {
+  async soap(wsdl, method, args, {headers} = {}, overrides = {}) {
     let httpsOptions = {
       // The port number might be appended to the URL. Remove it and specify it separately.
       host: this.instanceHostname.split(":")[0],
@@ -172,7 +172,7 @@ class SalesforceConnection {
     };
     let sessionHeader = null;
     if (this.sessionId) {
-      sessionHeader = {SessionHeader: {sessionId: this.sessionId}};
+      sessionHeader = {SessionHeader: {sessionId: this.sessionId.toString()}};
     }
     let requestBody = XML.stringify({
       name: "soapenv:Envelope",
